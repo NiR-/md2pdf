@@ -1,0 +1,119 @@
+#!/usr/bin/env node
+
+const Remarkable = require('remarkable');
+const toc = require('markdown-toc');
+const fs = require('fs');
+const puppeteer = require('puppeteer');
+const express = require('express');
+const {argv} = require('yargs');
+const path = require('path');
+const hljs = require('highlight.js');
+
+const highlight = (str, lang) => {
+  if (lang && hljs.getLanguage(lang)) {
+    try {
+      return hljs.highlight(lang, str).value;
+    } catch (err) {}
+  }
+
+  try {
+    return hljs.highlightAuto(str).value;
+  } catch (err) {}
+
+  return ''; // use external default escaping
+}
+
+const generateHtml = (file, pageTitle) => {
+  const md = new Remarkable({
+    html: true,
+    linkify: true,
+    typographer: true,
+    quotes: '«»',
+    highlight,
+  });
+  // @see https://github.com/jonschlinkert/remarkable/issues/122#issuecomment-150011254
+  md.use((remarkable) => {
+    remarkable.renderer.rules.heading_open = (tokens, idx) =>
+      '<h' + tokens[idx].hLevel + ' id=' + toc.slugify(tokens[idx + 1].content) + '>';
+  });
+
+  const content = toc.insert(fs.readFileSync(file, 'utf8'));
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="/dist/style.css">
+<title>${pageTitle}</title>
+<style>
+@page               { margin: 5%; }
+body                { padding: 20px; }
+section             { page-break-before: always; }
+section:first-child { page-break-before: avoid; page-break-after: always; }
+table               { page-break-inside:auto; }
+thead, tbody        { display: table-row-group; }
+tr                  { page-break-inside: avoid; page-break-after: auto; }
+section.version td  { height: 37px; }
+section.version tr td:nth-of-type(3) { width: 60%; }
+</style>
+</head>
+<body class="markdown-body">${md.render(content)}</body>
+</html>`;
+}
+
+const startServer = (basedir, htmlGenerator) => {
+  const server = express();
+
+  server.get('/', (req, res) => res.send(htmlGenerator()));
+  server.use('/dist', express.static(path.join(__dirname, 'dist')));
+
+  fs
+    .readdirSync(basedir)
+    .forEach((asset) =>
+      server.use(`/${asset}`, express.static(path.join(basedir, asset)))
+    );
+
+  return server.listen(0); // Let the kernel pick a random port
+}
+
+const generatePdf = async (address, outFile) => {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+
+  await page.goto(address);
+  await page.pdf({
+    path: outFile,
+    displayHeaderFooter: true,
+    headerTemplate: '<p style="text-align: center; font-size: 9px; width: 100%; margin-top: -4px;"><span class="title"></span></p>',
+    footerTemplate: '<p style="text-align: right; font-size: 9px; width: 100%; margin-bottom: -4px; padding-right: 3%;"><span class="pageNumber"></span> / <span class="totalPages"></span></p>',
+    printBackground: true,
+  });
+
+  await browser.close();
+}
+
+const usage = () => [
+  'Usage: md2pdf --in <md-input> --out <pdf-output> [--title <page-title>]',
+  '   or: md2pdf --debug --in <md-input> [--title <page-title>]            # Start a HTTP server to debug MD to HTML conversion'
+].forEach((l) => console.error(l));
+
+(async ({debug, in: inFile, out: outFile, title}) => {
+  if (debug && !inFile || !debug && (!inFile || !outFile)) {
+    usage();
+    process.exit(1);
+  }
+
+  const basedir = path.dirname(fs.realpathSync(inFile));
+  const htmlGenerator = generateHtml.bind(null, inFile, title || '');
+  const listener = startServer(basedir, htmlGenerator);
+  const address = `http://localhost:${listener.address().port}`;
+
+  if (debug) {
+    console.log(`Server available at: ${address}`);
+    console.log('Press Ctrl+C to quit.');
+  } else {
+    await generatePdf(address, outFile);
+    listener.close();
+  }
+})(argv);
