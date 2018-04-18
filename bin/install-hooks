@@ -1,0 +1,4 @@
+#!/bin/bash
+
+ln -s $(pwd)/.hooks/pre-commit $(pwd)/.git/hooks/pre-commit
+# We don't install the post-checkout hook here, because PDF file is committed

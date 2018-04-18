@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# An example hook script to automatically rebuild PDF when markdown is modified.
+# Called by "git commit" with no arguments.  The hook should
+# exit with non-zero status after issuing an appropriate message if
+# it wants to stop the commit.
+
+PREVIOUS=${1}
+NEW=${2}
+BRANCH_CHECKOUT=${3}
+
+IN_FILE=examples/example.md
+OUT_FILE=examples/example.pdf
+TITLE="Terroir Corp | Example Document"
+
+if git diff ${PREVIOUS} ${NEW} --name-status | grep ${IN_FILE} >/dev/null; then
+    echo "Regenerating example PDF..."
+    md2pdf --in ${IN_FILE} --out ${OUT_FILE} --title ${TITLE}
+fi

@@ -1,6 +1,6 @@
 # md2pdf
 
-This tool aims to provide an easy, straightforward and repeatable way of generating PDFs from markdown files. If you ever experience weird and painful process like: write your markdown in your favourite editor, then paste it in an online editor to then paste rendered text into a Google Doc, to finally export it into PDF, this tool has been made for you :-)
+This CLI tool aims to provide an easy, straightforward and repeatable way of generating PDFs from Markdown files. If you ever experience weird and painful process like: write your markdown in your favourite editor, then paste it in an online editor to then paste rendered text into a Google Doc, to finally export it into PDF, this tool has been made for you :-)
 
 ## How to use?
 
@@ -8,7 +8,7 @@ Take a look at [examples/](examples/) to see a dummy markdown document and how i
 
 ```bash
 # Convert example.md into example.pdf
-md2pdf --in example.md --out example.pdf --title "Terroir Corp LLC | Security Audit"
+md2pdf --in example.md --out example.pdf --title "Terroir Corp | Example Document"
 # Start a HTTP server to debug MD to HTML conversion (e.g. to debug missing images or CSS glitches)
 md2pdf --debug --in example.md
 ```
@@ -24,13 +24,20 @@ Arguments:
 
 To convert Markdown into PDF, `md2pdf` follow three steps:
 
-1. Convert Markdown into HTML, with [remarkable](https://github.com/jonschlinkert/remarkable),
+1. Convert Markdown (Github flavor) into HTML, with [remarkable](https://github.com/jonschlinkert/remarkable),
 2. Serve the HTML file, and static resources with [expressjs](https://expressjs.com),
 3. Convert HTML into PDF, with [puppeteer](https://github.com/GoogleChrome/puppeteer).
 
 To provide nice PDF, generated HTML is wrapped with a default template that includes a stylesheet with some of [primer](https://github.com/primer/primer) components, which is Github "design system". Thus, your PDFs should look like pretty much the same as your Markdown files on Github.
 
 Chrome in headless mode disallow use of `file://` URLs, thus static assets like the stylesheet mentioned above are served by a HTTP server. Any other file or directory in the same basedir as your markdown file, will be accessible through the HTTP server.
+
+## Git hooks
+
+As a cherry on the cake, thanks to reproducibility, you can use git hooks to automatically regenerate PDFs when their source file are modified. You can take a look to both hooks used in this repo:
+
+* [`pre-commit`](https://github.com/NiR-/md2pdf/tree/master/.hooks/pre-commit)
+* [`post-checkout`](https://github.com/NiR-/md2pdf/tree/master/.hooks/post-checkout)
 
 ## TODO
 
