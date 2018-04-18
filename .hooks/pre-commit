@@ -11,7 +11,7 @@ TITLE="Terroir Corp | Example Document"
 
 if git diff --cached --name-status | grep ${IN_FILE} >/dev/null; then
     echo "Regenerating example PDF..."
-    md2pdf --in ${IN_FILE} --out ${OUT_FILE} --title ${TITLE}
+    md2pdf --in ${IN_FILE} --out ${OUT_FILE} --title "${TITLE}"
 
     # You generally don't want to store the end document in your repo
     # but in our case, we want it accessible on Github

@@ -15,5 +15,5 @@ TITLE="Terroir Corp | Example Document"
 
 if git diff ${PREVIOUS} ${NEW} --name-status | grep ${IN_FILE} >/dev/null; then
     echo "Regenerating example PDF..."
-    md2pdf --in ${IN_FILE} --out ${OUT_FILE} --title ${TITLE}
+    md2pdf --in ${IN_FILE} --out ${OUT_FILE} --title "${TITLE}"
 fi
